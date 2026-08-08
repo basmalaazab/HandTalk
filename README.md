@@ -18,7 +18,7 @@ example, adapted to take landmark sequences instead of audio spectrograms.
 | What | Where |
 |---|---|
 | Trained model + weights | [huggingface.co/basmalaazab/asl-fingerspelling-transformer](https://huggingface.co/basmalaazab/asl-fingerspelling-transformer) |
-| Training notebook | [`Fingerspelling_Recognition.ipynb`](./Fingerspelling_Recognition.ipynb) |
+| Training notebook | [`HandTalk.ipynb`](./HandTalk.ipynb) |
 | Live camera demo | Gradio app, runs locally — see [Running the live demo](#-running-the-live-demo-locally) below |
 
 ---
@@ -53,10 +53,14 @@ This project spans two repos:
 **This GitHub repo** — notebook + live demo app:
 ```
 .
-├── Fingerspelling_Recognition.ipynb   # full training notebook (Kaggle)
+├── HandTalk.ipynb                     # full training notebook (Kaggle)
 ├── README.md
-└── live-demo.zip                      # app.py, requirements.txt, upload_space.py,
-                                        # character_to_prediction_index.json
+├── app.py                             # Gradio live-camera demo
+├── modeling.py                        # model architecture (copy, for convenience)
+├── config.json                        # hyperparameters (copy, for convenience)
+├── character_to_prediction_index.json # character <-> id vocabulary
+├── requirements.txt
+└── upload_space.py                    # pushes app.py etc. to a Hugging Face Space
 ```
 
 **[Hugging Face model repo](https://huggingface.co/basmalaazab/asl-fingerspelling-transformer)** — trained model:
@@ -70,8 +74,9 @@ This project spans two repos:
 └── upload_to_hub.py        # pushes these files to the HF model repo
 ```
 
-The live demo app (`app.py`) downloads the model files from the Hugging Face
-repo automatically at startup — you don't need to copy them in by hand.
+The live demo app (`app.py`) downloads the model files (including
+`transformer_weights.h5`, too large for this GitHub repo) from the Hugging
+Face repo automatically at startup — you don't need to copy them in by hand.
 
 > ⚠️ The model was saved with `model.save_weights(...)`, not `model.save(...)`,
 > so `transformer_weights.h5` alone isn't enough to use the model — you need
@@ -117,10 +122,10 @@ ids back into readable characters using `character_to_prediction_index.json`
 
 ## 🎥 Running the live demo (locally)
 
-Unzip `live-demo.zip` from this repo. The live webcam demo (`app.py`) reads
-your camera, extracts landmarks with MediaPipe in real time, buffers ~60
-frames, and runs the model (downloaded automatically from Hugging Face) to
-predict the spelled phrase.
+Clone this repo. The live webcam demo (`app.py`) reads your camera, extracts
+landmarks with MediaPipe in real time, buffers ~60 frames, and runs the
+model (downloaded automatically from Hugging Face) to predict the spelled
+phrase.
 
 ```bash
 pip install -r requirements.txt
