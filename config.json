@@ -1,0 +1,17 @@
+{
+  "architecture": "Transformer (HandTalk)",
+  "framework": "tensorflow/keras",
+  "num_hid": 200,
+  "num_head": 4,
+  "num_feed_forward": 400,
+  "source_maxlen": 100,
+  "target_maxlen": 64,
+  "num_layers_enc": 2,
+  "num_layers_dec": 1,
+  "num_classes": 62,
+  "pad_token_idx": 59,
+  "start_token_idx": 60,
+  "end_token_idx": 61,
+  "frame_len": 128,
+  "note": "These values were reverse-engineered from the actual weight shapes in transformer_weights.h5 (not the class defaults in modeling.py), so they match your trained model exactly."
+}
