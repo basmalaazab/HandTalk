@@ -93,8 +93,8 @@ token_ids = model.generate(x, target_start_token_idx=60)
 ```
 
 See `inference.py` for the full pipeline, including turning predicted token
-ids back into readable characters (requires
-`character_to_prediction_index.json` from the
+ids back into readable characters using `character_to_prediction_index.json`
+(included in this repo, sourced from the
 [competition dataset](https://www.kaggle.com/competitions/asl-fingerspelling/data)).
 
 ---
@@ -118,9 +118,17 @@ your browser and allow camera access.
 > (static Spaces are still free); it isn't deployed as a public Space for
 > that reason.
 
-Without `character_to_prediction_index.json` present next to `app.py`, the
-demo shows raw predicted token ids instead of letters — drop that file in
-to get readable text output.
+`character_to_prediction_index.json` is included next to `app.py`, so the
+demo shows readable letters instead of raw token ids.
+
+> **Known limitation:** prediction accuracy is noticeably lower in this live
+> demo than during training/evaluation. The model was trained on the
+> competition's pre-processed landmark sequences (fixed lighting, camera
+> angle, and offline MediaPipe extraction); the live demo extracts landmarks
+> from a webcam in real time under different conditions, and the fixed
+> 60-frame buffering window doesn't always line up with how fast someone
+> spells. Improving this — e.g. fine-tuning on real webcam data or making
+> the buffering window adaptive — is listed under future improvements.
 
 ---
 
