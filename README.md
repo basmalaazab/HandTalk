@@ -1,57 +1,99 @@
----
-tags:
-  - keras
-  - tensorflow
-  - sign-language
-  - fingerspelling
-  - transformer
-  - asl
-license: mit
----
+# HandTalk 🤟
 
-# HandTalk (Transformer)
-
-A Transformer-based model that reads a sequence of hand/pose landmarks
+A Transformer-based model that reads a sequence of hand and pose landmarks
 (extracted with [MediaPipe](https://developers.google.com/mediapipe)) from a
 video of American Sign Language fingerspelling and predicts the spelled-out
 phrase, character by character.
 
-Trained on the [ASL Fingerspelling](https://www.kaggle.com/competitions/asl-fingerspelling)
-Kaggle dataset. Architecture follows the Keras
+Trained on the [Google - ASL Fingerspelling Recognition](https://www.kaggle.com/competitions/asl-fingerspelling)
+Kaggle competition dataset (3M+ fingerspelled characters from 100+ Deaf
+signers). Architecture follows the Keras
 ["Automatic Speech Recognition with Transformer"](https://keras.io/examples/audio/transformer_asr/)
-example, adapted for landmark-sequence input instead of audio spectrograms.
+example, adapted to take landmark sequences instead of audio spectrograms.
+
+---
+
+## 🔗 Links
+
+| What | Where |
+|---|---|
+| Trained model + weights | [huggingface.co/basmalaazab/asl-fingerspelling-transformer](https://huggingface.co/basmalaazab/asl-fingerspelling-transformer) |
+| Training notebook | [`Fingerspelling_Recognition.ipynb`](./Fingerspelling_Recognition.ipynb) |
+| Live camera demo | Gradio app, runs locally — see [Running the live demo](#-running-the-live-demo-locally) below |
+
+---
 
 ## How it works
 
 1. **Input**: per-frame (x, y, z) coordinates for the dominant hand (21
-   points) and 10 pose points related to hand movement (`FEATURE_COLUMNS`
-   in `modeling.py`).
-2. **Encoder**: 3 strided 1D conv layers downsample the sequence, followed
-   by 4 Transformer encoder blocks.
-3. **Decoder**: 1 Transformer decoder block, autoregressively predicting
-   one character at a time (greedy decoding) until the end token.
+   points) and 10 pose points related to hand/arm movement.
+2. **Encoder**: 3 strided 1D convolution layers downsample the landmark
+   sequence, followed by 2 Transformer encoder blocks.
+3. **Decoder**: 1 Transformer decoder block, autoregressively predicting one
+   character at a time (greedy decoding) until an end-of-sequence token.
 
-## Config
+**Actual trained config** (reverse-engineered from the saved weights):
 
-Reverse-engineered from the actual weight shapes (see `config.json`):
-`num_hid=200`, `num_head=4`, `num_feed_forward=400`, `num_layers_enc=2`,
-`num_layers_dec=1`, `num_classes=62`, `target_maxlen=64`.
-
-## Files in this repo
-
-| File | Purpose |
+| Param | Value |
 |---|---|
-| `modeling.py` | Model architecture (must be imported to rebuild the model before loading weights) |
-| `config.json` | Hyperparameters used to build the architecture |
-| `transformer_weights.h5` | Trained weights (`model.save_weights(...)` output — **not** a full SavedModel) |
-| `inference.py` | End-to-end example: landmarks in, predicted text out |
-| `requirements.txt` | Python dependencies |
+| `num_hid` | 200 |
+| `num_head` | 4 |
+| `num_feed_forward` | 400 |
+| `num_layers_enc` | 2 |
+| `num_layers_dec` | 1 |
+| `num_classes` | 62 |
+| `target_maxlen` | 64 |
 
-> ⚠️ This model was saved with `save_weights()`, not `model.save()`, so the
-> weights file alone is not enough — you need `modeling.py` to reconstruct
-> the exact architecture first, then load the weights into it.
+---
 
-## Usage
+## Repo structure
+
+This project spans two repos:
+
+**This GitHub repo** — notebook + live demo app:
+```
+.
+├── Fingerspelling_Recognition.ipynb   # full training notebook (Kaggle)
+├── README.md
+└── live-demo.zip                      # app.py, requirements.txt, upload_space.py,
+                                        # character_to_prediction_index.json
+```
+
+**[Hugging Face model repo](https://huggingface.co/basmalaazab/asl-fingerspelling-transformer)** — trained model:
+```
+.
+├── modeling.py             # model architecture (rebuild before loading weights)
+├── config.json             # hyperparameters matching the trained weights
+├── inference.py            # end-to-end example: landmarks -> predicted text
+├── transformer_weights.h5  # trained weights (save_weights output, not a full SavedModel)
+├── requirements.txt
+└── upload_to_hub.py        # pushes these files to the HF model repo
+```
+
+The live demo app (`app.py`) downloads the model files from the Hugging Face
+repo automatically at startup — you don't need to copy them in by hand.
+
+> ⚠️ The model was saved with `model.save_weights(...)`, not `model.save(...)`,
+> so `transformer_weights.h5` alone isn't enough to use the model — you need
+> `modeling.py` to rebuild the exact same architecture first, then load the
+> weights into it. `build_model()` in `modeling.py` does this for you.
+
+---
+
+## ⚙️ Setup
+
+Download `modeling.py`, `config.json`, and `transformer_weights.h5` from the
+[Hugging Face model repo](https://huggingface.co/basmalaazab/asl-fingerspelling-transformer), then:
+
+```bash
+pip install -r requirements.txt
+```
+
+Main dependencies: `tensorflow`, `mediapipe`, `gradio`, `huggingface_hub`, `numpy`.
+
+---
+
+## 🚀 Using the model
 
 ```python
 from modeling import build_model, pre_process
@@ -65,24 +107,85 @@ x = pre_process(tf.constant(landmarks, dtype=tf.float32))[None, ...]
 token_ids = model.generate(x, target_start_token_idx=60)
 ```
 
-See `inference.py` for the full pipeline including turning token ids back
-into characters.
+See `inference.py` for the full pipeline, including turning predicted token
+ids back into readable characters using `character_to_prediction_index.json`
+(included in this repo, sourced from the
+[competition dataset](https://www.kaggle.com/competitions/asl-fingerspelling/data)).
 
-## Vocabulary
+---
 
-You'll need your `character_to_prediction_index.json` (character ↔ id
-mapping) from training — it is not included in this repo. Place it next to
-`inference.py` before running predictions.
+## 🎥 Running the live demo (locally)
+
+Unzip `live-demo.zip` from this repo. The live webcam demo (`app.py`) reads
+your camera, extracts landmarks with MediaPipe in real time, buffers ~60
+frames, and runs the model (downloaded automatically from Hugging Face) to
+predict the spelled phrase.
+
+```bash
+pip install -r requirements.txt
+python app.py
+```
+
+Then open the local URL Gradio prints (usually `http://127.0.0.1:7860`) in
+your browser and allow camera access.
+
+> This currently runs **locally only**. Hosting a live Gradio app on
+> Hugging Face Spaces' free CPU tier now requires a **PRO** subscription
+> (static Spaces are still free); it isn't deployed as a public Space for
+> that reason.
+
+`character_to_prediction_index.json` is included next to `app.py`, so the
+demo shows readable letters instead of raw token ids.
+
+> **Known limitation:** prediction accuracy is noticeably lower in this live
+> demo than during training/evaluation. The model was trained on the
+> competition's pre-processed landmark sequences (fixed lighting, camera
+> angle, and offline MediaPipe extraction); the live demo extracts landmarks
+> from a webcam in real time under different conditions, and the fixed
+> 60-frame buffering window doesn't always line up with how fast someone
+> spells. Improving this — e.g. fine-tuning on real webcam data or making
+> the buffering window adaptive — is listed under future improvements.
+
+---
+
+## 📤 Publishing updates
+
+```bash
+# push model files (modeling.py, config.json, weights) to the model repo
+python upload_to_hub.py --repo-id basmalaazab/asl-fingerspelling-transformer
+
+# push the Gradio app to a Hugging Face Space (requires PRO for CPU hosting)
+python upload_space.py --repo-id basmalaazab/asl-fingerspelling-live
+```
+
+Both scripts require being logged in once via:
+```bash
+python -c "from huggingface_hub import login; login()"
+```
+
+---
 
 ## Limitations
 
-- Requires the dominant hand to be visible in frame; heavy occlusion or
-  motion blur will degrade predictions.
+- Requires the dominant hand to be clearly visible; heavy occlusion or
+  motion blur degrades predictions.
 - Trained specifically on fingerspelled English phrases, not full ASL
   grammar/vocabulary.
+- Best results with good, even lighting.
+- Accuracy drops noticeably in the live webcam demo compared to
+  training/evaluation, due to the mismatch between the offline training
+  data and real-time webcam conditions (see note under
+  [Running the live demo](#-running-the-live-demo-locally)).
 
-## Citation / Acknowledgements
+---
 
-- Dataset: Kaggle ASL Fingerspelling competition
+## Acknowledgements
+
+- Dataset: [Google - ASL Fingerspelling Recognition](https://www.kaggle.com/competitions/asl-fingerspelling), Kaggle
 - Model design references: Keras Transformer ASR example, and community
-  notebooks by `irohith` and `shlomoron` on Kaggle.
+  notebooks on Kaggle
+- Landmark extraction: [MediaPipe Holistic](https://developers.google.com/mediapipe)
+
+## License
+
+MIT
