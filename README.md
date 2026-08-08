@@ -82,7 +82,8 @@ repo automatically at startup — you don't need to copy them in by hand.
 
 ## ⚙️ Setup
 
-Download `modeling.py`, `config.json`, and `transformer_weights.h5` from the
+Download `modeling.py`, `config.json`, `transformer_weights.h5`, and
+`character_to_prediction_index.json` from the
 [Hugging Face model repo](https://huggingface.co/basmalaazab/asl-fingerspelling-transformer), then:
 
 ```bash
