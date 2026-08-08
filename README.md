@@ -48,18 +48,30 @@ example, adapted to take landmark sequences instead of audio spectrograms.
 
 ## Repo structure
 
+This project spans two repos:
+
+**This GitHub repo** — notebook + live demo app:
 ```
 .
 ├── Fingerspelling_Recognition.ipynb   # full training notebook (Kaggle)
-├── modeling.py                        # model architecture (rebuild before loading weights)
-├── config.json                        # hyperparameters matching the trained weights
-├── inference.py                       # end-to-end example: landmarks -> predicted text
-├── transformer_weights.h5             # trained weights (save_weights output, not a full SavedModel)
-├── app.py                             # Gradio live-camera demo
-├── requirements.txt                   # Python dependencies
-├── upload_to_hub.py                   # pushes the model files to the HF model repo
-└── upload_space.py                    # pushes app.py etc. to an HF Space
+├── README.md
+└── live-demo.zip                      # app.py, requirements.txt, upload_space.py,
+                                        # character_to_prediction_index.json
 ```
+
+**[Hugging Face model repo](https://huggingface.co/basmalaazab/asl-fingerspelling-transformer)** — trained model:
+```
+.
+├── modeling.py             # model architecture (rebuild before loading weights)
+├── config.json             # hyperparameters matching the trained weights
+├── inference.py            # end-to-end example: landmarks -> predicted text
+├── transformer_weights.h5  # trained weights (save_weights output, not a full SavedModel)
+├── requirements.txt
+└── upload_to_hub.py        # pushes these files to the HF model repo
+```
+
+The live demo app (`app.py`) downloads the model files from the Hugging Face
+repo automatically at startup — you don't need to copy them in by hand.
 
 > ⚠️ The model was saved with `model.save_weights(...)`, not `model.save(...)`,
 > so `transformer_weights.h5` alone isn't enough to use the model — you need
@@ -69,6 +81,9 @@ example, adapted to take landmark sequences instead of audio spectrograms.
 ---
 
 ## ⚙️ Setup
+
+Download `modeling.py`, `config.json`, and `transformer_weights.h5` from the
+[Hugging Face model repo](https://huggingface.co/basmalaazab/asl-fingerspelling-transformer), then:
 
 ```bash
 pip install -r requirements.txt
@@ -101,9 +116,10 @@ ids back into readable characters using `character_to_prediction_index.json`
 
 ## 🎥 Running the live demo (locally)
 
-The live webcam demo (`app.py`) reads your camera, extracts landmarks with
-MediaPipe in real time, buffers ~60 frames, and runs the model to predict
-the spelled phrase.
+Unzip `live-demo.zip` from this repo. The live webcam demo (`app.py`) reads
+your camera, extracts landmarks with MediaPipe in real time, buffers ~60
+frames, and runs the model (downloaded automatically from Hugging Face) to
+predict the spelled phrase.
 
 ```bash
 pip install -r requirements.txt
@@ -156,6 +172,10 @@ python -c "from huggingface_hub import login; login()"
 - Trained specifically on fingerspelled English phrases, not full ASL
   grammar/vocabulary.
 - Best results with good, even lighting.
+- Accuracy drops noticeably in the live webcam demo compared to
+  training/evaluation, due to the mismatch between the offline training
+  data and real-time webcam conditions (see note under
+  [Running the live demo](#-running-the-live-demo-locally)).
 
 ---
 
